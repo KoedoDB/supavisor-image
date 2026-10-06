@@ -1,0 +1,21 @@
+name: test
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Weekly: catches a change of the base images or of the tools the test uses.
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Supavisor with a metadata database and two target databases
+        run: tests/run.sh
