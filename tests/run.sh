@@ -75,6 +75,8 @@ start_sv() {
        [ "$(docker exec "${run}-sv" curl -s -o /dev/null -w '%{http_code}' localhost:4000/api/tenants/readiness-probe -H "Authorization: Bearer $(jwt_for_wait)" 2>/dev/null)" = 404 ]; then return 0; fi
     sleep 1
   done
+  # Say why: a container that is not running, or one that is running and does not answer.
+  { echo "-- the server did not answer: its state, and the end of its log"; docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}}' "${run}-sv"; docker logs --tail 60 "${run}-sv" 2>&1; } >&2 || true
   return 1
 }
 check "it starts and answers /api/health" "start_sv"
