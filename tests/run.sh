@@ -75,11 +75,15 @@ start_sv() {
        [ "$(docker exec "${run}-sv" curl -s -o /dev/null -w '%{http_code}' localhost:4000/api/tenants/readiness-probe -H "Authorization: Bearer $(jwt_for_wait)" 2>/dev/null)" = 404 ]; then return 0; fi
     sleep 1
   done
-  # Say why: a container that is not running, or one that is running and does not answer.
-  { echo "-- the server did not answer: its state, and the end of its log"; docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}}' "${run}-sv"; docker logs --tail 60 "${run}-sv" 2>&1; } >&2 || true
   return 1
 }
 check "it starts and answers /api/health" "start_sv"
+# Say why when it did not: the state of the container, and the end of its log (the output of a check is not shown).
+if [ "$fail" != 0 ]; then
+  echo "-- the server did not answer: its state, and the end of its log"
+  docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}}' "${run}-sv" 2>&1 || true
+  docker logs --tail 60 "${run}-sv" 2>&1 | cut -c1-300 || true
+fi
 check "it runs as a non-root user" "[ \"\$(docker exec ${run}-sv id -u)\" = 10001 ]"
 check "the open-files limit is raised to 100000 (limits.sh) for the server process, without root" "docker exec ${run}-sv sh -c 'grep -l \"Max open files *100000\" /proc/[0-9]*/limits' | grep -q limits"
 
