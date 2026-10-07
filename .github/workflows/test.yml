@@ -3,9 +3,6 @@ name: test
 on:
   push:
   pull_request:
-  schedule:
-    # Weekly: catches a change of the base images or of the tools the test uses.
-    - cron: "0 3 * * 1"
   workflow_dispatch:
 
 permissions:
