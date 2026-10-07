@@ -65,9 +65,11 @@ print((h + b"." + p + b"." + b(hmac.new(sys.argv[1].encode(), h + b"." + p, hash
 PY
 }
 jwt_for_wait() { jwt "$api_secret"; }
+# The image raises the open-files limit to 100000 itself (limits.sh), as a non-root user: that only works when the HARD limit is at least that. A developer's Docker has one that is large;
+# a GitHub runner's does not ("ulimit: open files: cannot modify limit", and the server exits). So the test sets the hard limit, as the container runtime of a Host does.
 start_sv() {
   docker run -d --name "${run}-sv" --network "$net" --network-alias db-sni1.koedodb.test --network-alias db-late.koedodb.test --user 10001:10001 --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
-    --env-file "$work/sv.env" -v "$work:/certs:ro" "$IMAGE" >/dev/null
+    --ulimit nofile=1048576:1048576 --env-file "$work/sv.env" -v "$work:/certs:ro" "$IMAGE" >/dev/null
   # /api/health answers 204 before the server has connected to the metadata database, and an API call in that moment is a 500. So wait for an API
   # call that needs the database to answer properly (404: no such tenant).
   for _ in $(seq 1 60); do
